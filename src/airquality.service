@@ -1,0 +1,13 @@
+[Unit]
+Description=Air Quality Monitor service
+After=syslog.target network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/airquality
+ExecStart=/var/www/airquality/venv/bin/flask run --with-threads --reload -p 8001
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

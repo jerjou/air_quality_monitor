@@ -1,45 +1,59 @@
-import json
 import os
-import time
 import datetime
 import serial
-import redis
 import aqi
+import sqlite3
 
-redis_client = redis.StrictRedis(host=os.environ.get('REDIS_HOST'), port=6379, db=0)
 
+def get_db_cursor():
+    return sqlite3.connect('data.db')
 
 class AirQualityMonitor():
 
     def __init__(self):
         self.ser = serial.Serial('/dev/ttyUSB0')
+        # Check if it exists before connecting, so we can create the table
+        if not os.path.exists('data.db'):
+            sqlite3.connect('data.db').cursor().execute(
+                '''CREATE TABLE airquality
+                   (created datetime default current_timestamp,
+                   pm2 int,
+                   pm10 int,
+                   aqi real)''')
 
     def get_measurement(self):
-        self.data = []
+        data = []
         for index in range(0,10):
             datum = self.ser.read()
-            self.data.append(datum)
-        self.pmtwo = int.from_bytes(b''.join(self.data[2:4]), byteorder='little') / 10
-        self.pmten = int.from_bytes(b''.join(self.data[4:6]), byteorder='little') / 10
-        myaqi = aqi.to_aqi([(aqi.POLLUTANT_PM25, str(self.pmtwo)),
-                            (aqi.POLLUTANT_PM10, str(self.pmten))])
+            data.append(datum)
+        pmtwo = int.from_bytes(b''.join(data[2:4]), byteorder='little') / 10
+        pmten = int.from_bytes(b''.join(data[4:6]), byteorder='little') / 10
+        myaqi = aqi.to_aqi([(aqi.POLLUTANT_PM25, str(pmtwo)),
+                            (aqi.POLLUTANT_PM10, str(pmten))])
         self.aqi = float(myaqi)
 
-        self.meas = {
+        return {
             "timestamp": datetime.datetime.now(),
-            "pm2.5": self.pmtwo,
-            "pm10": self.pmten,
+            "pm2.5": pmtwo,
+            "pm10": pmten,
             "aqi": self.aqi,
         }
-        return {
-            'time': int(time.time()),
-            'measurement': self.meas
-        }
 
-    def save_measurement_to_redis(self):
-        """Saves measurement to redis db"""
-        redis_client.lpush('measurements', json.dumps(self.get_measurement(), default=str))
+    def save_measurement(self):
+        measurement = self.get_measurement()
+        with get_db_cursor() as conn:
+            conn.execute(
+                'insert into airquality (pm2, pm10, aqi) values (?, ?, ?)',
+                (measurement['pm2.5'], measurement['pm10'], measurement['aqi']))
 
-    def get_last_n_measurements(self):
+    def get_latest(self, n=100):
         """Returns the last n measurements in the list"""
-        return [json.loads(x) for x in redis_client.lrange('measurements', 0, -1)]
+        return [{
+            'timestamp': created,
+            'pm2.5': pm2,
+            'pm10': pm10,
+            'aqi': aqi,
+        } for created, pm2, pm10, aqi in get_db_cursor().execute(
+            'select created, pm2, pm10, aqi from airquality '
+            'order by created desc limit ?',
+            (n,)).fetchall()]

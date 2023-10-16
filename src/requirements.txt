@@ -1,7 +1,7 @@
 sds011==0.2.0
 ipython
 flask
-redis
+#redis
 APScheduler==3.7.0
 flask-cors
 python-aqi==0.6.1
