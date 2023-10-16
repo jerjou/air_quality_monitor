@@ -29,14 +29,12 @@ def pretty_timestamps(measurement):
         datetime.strptime(m['timestamp'], '%Y-%m-%d %H:%M:%S').replace(
           tzinfo=timezone.utc).astimezone(ZoneInfo("America/New_York"))
         for m in measurement]
-    # Label the date for only the ones where the day changes, and the first one
-    accented_labels = [timestamps[0].strftime('%a %m/%d %H:%M')]
-    for i, (dt1, dt2) in enumerate(zip(timestamps, timestamps[1:])):
-      if dt1.day != dt2.day:
-        accented_labels.append(dt2.strftime('%a %m/%d %H:%M'))
-      else:
-        accented_labels.append(dt2.strftime('%H:%M'))
-    return accented_labels
+    # Label the date for only the ones where the day changes, and the first hour
+    # of each new day (Not just the first entry, because the graph may not end
+    # up using that label for coarse grid lines)
+    return [timestamps[0].strftime('%a %m/%d %H:%M')] + [
+        dt.strftime('%H:%M' if dt.hour else '%a %m/%d %H:%M')
+        for dt in timestamps[1:]]
 
 def reconfigure_data(measurement):
     """Reconfigures data for chart.js"""
@@ -99,4 +97,6 @@ def api_now():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, use_reloader=False, host='0.0.0.0', port=int(os.environ.get('PORT', '8000')))
+    #app.run(debug=True, use_reloader=False, host='0.0.0.0', port=int(os.environ.get('PORT', '8000')))
+    import bjoern
+    bjoern.run(app, "0.0.0.0", int(os.environ.get('PORT', '8000')))
