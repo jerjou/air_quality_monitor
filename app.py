@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import json
 
-MINUTES_PER_SAMPLE = 1
+MINUTES_PER_SAMPLE = 5
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -92,19 +92,21 @@ def api():
 
 def stream(hours):
     get = lambda: aqm.get_latest(hours * 60 / MINUTES_PER_SAMPLE)
-    old_data = get()
+    old_data = None
     while True:
         new_data = get()
         if new_data != old_data:
             old_data = new_data
             yield 'event: data\ndata: {}\n\n'.format(
                     json.dumps(reconfigure_data(new_data)))
-            time.sleep(MINUTES_PER_SAMPLE * 60)
+            time.sleep(MINUTES_PER_SAMPLE * 60 * .5)
         else:
             time.sleep(10)
 
 @app.route('/api/listen')
 def api_listen():
+    # Apparently bjoern is single-threaded, so maybe server-sent events isn't
+    # the best idea...
     hours = int(request.args.get('hours', 24))
     return Response(stream(hours), mimetype='text/event-stream')
 
