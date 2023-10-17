@@ -7,7 +7,7 @@ from flask_cors import CORS, cross_origin
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-MINUTES_PER_SAMPLE = 5
+MINUTES_PER_SAMPLE = 1
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -29,12 +29,15 @@ def pretty_timestamps(measurement):
         datetime.strptime(m['timestamp'], '%Y-%m-%d %H:%M:%S').replace(
           tzinfo=timezone.utc).astimezone(ZoneInfo("America/New_York"))
         for m in measurement]
-    # Label the date for only the ones where the day changes, and the first hour
-    # of each new day (Not just the first entry, because the graph may not end
-    # up using that label for coarse grid lines)
-    return [timestamps[0].strftime('%a %m/%d %H:%M')] + [
-        dt.strftime('%H:%M' if dt.hour else '%a %m/%d %H:%M')
-        for dt in timestamps[1:]]
+    if timestamps:
+        # Label the date for only the ones where the day changes, and the first hour
+        # of each new day (Not just the first entry, because the graph may not end
+        # up using that label for coarse grid lines)
+        return [timestamps[0].strftime('%a %m/%d %H:%M')] + [
+            dt.strftime('%H:%M' if dt.hour else '%a %m/%d %H:%M')
+            for dt in timestamps[1:]]
+    else:
+        return []
 
 def reconfigure_data(measurement):
     """Reconfigures data for chart.js"""
@@ -68,11 +71,12 @@ def reconfigure_data(measurement):
 def index():
     """Index page for the application"""
     hours = int(request.args.get('hours', 24))
-    context = {
-        'historical': reconfigure_data(aqm.get_latest(
+    return render_template(
+        'index.html',
+        historical=reconfigure_data(aqm.get_latest(
           hours * 60 / MINUTES_PER_SAMPLE)),
-    }
-    return render_template('index.html', context=context)
+        minsPerSample=MINUTES_PER_SAMPLE,
+        )
 
 
 @app.route('/api/')
@@ -80,11 +84,8 @@ def index():
 def api():
     """Returns historical data from the sensor"""
     hours = int(request.args.get('hours', 24))
-    context = {
-        'historical': reconfigure_data(aqm.get_latest(
-          hours * 60 / MINUTES_PER_SAMPLE)),
-    }
-    return jsonify(context)
+    return jsonify(reconfigure_data(aqm.get_latest(
+      hours * 60 / MINUTES_PER_SAMPLE)))
 
 
 @app.route('/api/now/')
@@ -97,6 +98,7 @@ def api_now():
 
 
 if __name__ == "__main__":
-    #app.run(debug=True, use_reloader=False, host='0.0.0.0', port=int(os.environ.get('PORT', '8000')))
+    #app.run(debug=True, use_reloader=False, host='0.0.0.0',
+    #    port=int(os.environ.get('PORT', '8000')))
     import bjoern
     bjoern.run(app, "0.0.0.0", int(os.environ.get('PORT', '8000')))
