@@ -7,7 +7,7 @@ from flask_cors import CORS, cross_origin
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-MINUTES_PER_SAMPLE = 1
+MINUTES_PER_SAMPLE = 5
 
 app = Flask(__name__)
 cors = CORS(app)
