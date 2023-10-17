@@ -1,13 +1,15 @@
 import os
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, Response
 from AirQualityMonitor import AirQualityMonitor
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
+import time
 from flask_cors import CORS, cross_origin
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
+import json
 
-MINUTES_PER_SAMPLE = 5
+MINUTES_PER_SAMPLE = 1
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -88,14 +90,23 @@ def api():
       hours * 60 / MINUTES_PER_SAMPLE)))
 
 
-@app.route('/api/now/')
-def api_now():
-    """Returns latest data from the sensor"""
-    context = {
-        'current': aqm.get_measurement(),
-    }
-    return jsonify(context)
+def stream(hours):
+    get = lambda: aqm.get_latest(hours * 60 / MINUTES_PER_SAMPLE)
+    old_data = get()
+    while True:
+        new_data = get()
+        if new_data != old_data:
+            old_data = new_data
+            yield 'event: data\ndata: {}\n\n'.format(
+                    json.dumps(reconfigure_data(new_data)))
+            time.sleep(MINUTES_PER_SAMPLE * 60)
+        else:
+            time.sleep(10)
 
+@app.route('/api/listen')
+def api_listen():
+    hours = int(request.args.get('hours', 24))
+    return Response(stream(hours), mimetype='text/event-stream')
 
 if __name__ == "__main__":
     #app.run(debug=True, use_reloader=False, host='0.0.0.0',

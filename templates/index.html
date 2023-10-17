@@ -58,16 +58,25 @@ function sleep(ms) {
       options: CHART_OPTIONS,
   });
 
-  while (true) {
-    await sleep(MINS_PER_SAMPLE * 60 * 1000 / 4);
-    let data = await fetch('/api/?' + location.search);
-    data = await data.json();
+  const updates = new EventSource("/api/listen");
+  updates.addEventListener('data', e => {
+    data = JSON.parse(e.data);
     chart.data = {
       labels: data.labels,
       datasets: [data.aqi, data.pm10, data.pm2]
     };
     chart.update('none');
-  }
+  });
+  //while (true) {
+  //  await sleep(MINS_PER_SAMPLE * 60 * 1000 / 4);
+  //  let data = await fetch('/api/?' + location.search);
+  //  data = await data.json();
+  //  chart.data = {
+  //    labels: data.labels,
+  //    datasets: [data.aqi, data.pm10, data.pm2]
+  //  };
+  //  chart.update('none');
+  //}
 })();
 </script>
 </body>
