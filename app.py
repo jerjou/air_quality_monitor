@@ -4,6 +4,7 @@ from AirQualityMonitor import AirQualityMonitor
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 import time
+from datetime import datetime, timedelta
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import json
@@ -14,7 +15,11 @@ app = Flask(__name__)
 aqm = AirQualityMonitor(MINUTES_PER_SAMPLE)
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=aqm.save_measurement, trigger="interval", minutes=MINUTES_PER_SAMPLE)
+scheduler.add_job(
+    next_run_time=datetime.now() + timedelta(seconds=10),
+    func=aqm.save_measurement,
+    trigger="interval",
+    minutes=MINUTES_PER_SAMPLE)
 scheduler.start()
 
 def cleanup():

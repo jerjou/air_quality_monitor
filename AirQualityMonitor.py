@@ -30,8 +30,8 @@ class AirQualityMonitor():
            aqi real)''')
 
   def _get_measurement(self):
-    reading = sensor.query()
-    aqi = aqi.to_aqi([
+    reading = self.sensor.query()
+    the_aqi = aqi.to_aqi([
       (aqi.POLLUTANT_PM25, str(reading.pm25)),
       (aqi.POLLUTANT_PM10, str(reading.pm10))
       ])
@@ -40,7 +40,7 @@ class AirQualityMonitor():
       "timestamp": datetime.datetime.now(),
       "pm2.5": reading.pm25,
       "pm10": reading.pm10,
-      "aqi": float(aqi),
+      "aqi": float(the_aqi),
     }
 
   def save_measurement(self):
