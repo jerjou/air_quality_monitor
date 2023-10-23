@@ -4,7 +4,6 @@ from AirQualityMonitor import AirQualityMonitor
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 import time
-from flask_cors import CORS, cross_origin
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import json
@@ -12,8 +11,6 @@ import json
 MINUTES_PER_SAMPLE = 5
 
 app = Flask(__name__)
-cors = CORS(app)
-app.config['CORS_HEADERS'] = 'Content-Type'
 aqm = AirQualityMonitor(MINUTES_PER_SAMPLE)
 
 scheduler = BackgroundScheduler()
@@ -82,7 +79,6 @@ def index():
 
 
 @app.route('/api/')
-@cross_origin()
 def api():
     """Returns historical data from the sensor"""
     hours = int(request.args.get('hours', 24))
