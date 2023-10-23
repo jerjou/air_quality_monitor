@@ -77,8 +77,7 @@ def index():
     hours = int(request.args.get('hours', 24))
     return render_template(
         'index.html',
-        historical=reconfigure_data(aqm.get_latest(
-          hours * 60 / MINUTES_PER_SAMPLE)),
+        historical=reconfigure_data(aqm.get_latest(hours)),
         minsPerSample=MINUTES_PER_SAMPLE,
         )
 
@@ -87,12 +86,11 @@ def index():
 def api():
     """Returns historical data from the sensor"""
     hours = int(request.args.get('hours', 24))
-    return jsonify(reconfigure_data(aqm.get_latest(
-      hours * 60 / MINUTES_PER_SAMPLE)))
+    return jsonify(reconfigure_data(aqm.get_latest(hours)))
 
 
 def stream(hours):
-    get = lambda: aqm.get_latest(hours * 60 / MINUTES_PER_SAMPLE)
+    get = lambda: aqm.get_latest(hours)
     old_data = None
     while True:
         new_data = get()

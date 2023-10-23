@@ -1,5 +1,5 @@
 import os
-import datetime
+from datetime import datetime, timedelta
 import serial
 import aqi
 import sqlite3
@@ -37,7 +37,7 @@ class AirQualityMonitor():
       ])
 
     return {
-      "timestamp": datetime.datetime.now(),
+      "timestamp": datetime.now(),
       "pm2.5": reading.pm25,
       "pm10": reading.pm10,
       "aqi": float(the_aqi),
@@ -50,8 +50,10 @@ class AirQualityMonitor():
         'insert into airquality (pm2, pm10, aqi) values (?, ?, ?)',
         (measurement['pm2.5'], measurement['pm10'], measurement['aqi']))
 
-  def get_latest(self, n=100):
+  def get_latest(self, hours=24):
     """Returns the last n measurements in the list"""
+    since = datetime.utcnow() - timedelta(hours=hours)
+    since = since.strftime('%Y-%m-%d %H:%M:%S')
     return [{
       'timestamp': created,
       'pm2.5': pm2,
@@ -59,5 +61,6 @@ class AirQualityMonitor():
       'aqi': aqi,
     } for created, pm2, pm10, aqi in get_db_cursor().execute(
       'select created, pm2, pm10, aqi from airquality '
-      'order by created desc limit ?',
-      (n,)).fetchall()]
+      'where created > ? '
+      'order by created desc',
+      (since,)).fetchall()]
