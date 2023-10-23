@@ -14,7 +14,7 @@ MINUTES_PER_SAMPLE = 5
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
-aqm = AirQualityMonitor()
+aqm = AirQualityMonitor(MINUTES_PER_SAMPLE)
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=aqm.save_measurement, trigger="interval", minutes=MINUTES_PER_SAMPLE)
