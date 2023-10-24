@@ -24,6 +24,7 @@ scheduler.start()
 
 def cleanup():
     scheduler.shutdown()
+    aqm.sensor.sleep()
 
 
 atexit.register(cleanup)

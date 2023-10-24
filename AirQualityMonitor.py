@@ -18,6 +18,7 @@ class AirQualityMonitor():
     else:
       raise RuntimeError('ttyUSB not found.')
 
+    self.sensor.wake()
     self.sensor.set_working_period(read_interval)
 
     # Check if it exists before connecting, so we can create the table
