@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import json
 
-MINUTES_PER_SAMPLE = 5
+MINUTES_PER_SAMPLE = 10
 
 app = Flask(__name__)
 aqm = AirQualityMonitor(MINUTES_PER_SAMPLE)
