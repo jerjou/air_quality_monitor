@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 import json
 
 MINUTES_PER_SAMPLE = 10
+LOCALTZ = ZoneInfo('America/New_York')
 
 app = Flask(__name__)
 aqm = AirQualityMonitor(MINUTES_PER_SAMPLE)
@@ -32,7 +33,7 @@ atexit.register(cleanup)
 def pretty_timestamps(measurement):
     timestamps = [
         datetime.strptime(m['timestamp'], '%Y-%m-%d %H:%M:%S').replace(
-          tzinfo=timezone.utc).astimezone(ZoneInfo("America/New_York"))
+          tzinfo=timezone.utc).astimezone(LOCALTZ)
         for m in measurement]
     if timestamps:
         # Label the date for only the ones where the day changes, and the first hour
@@ -72,29 +73,38 @@ def reconfigure_data(measurement):
         },
     }
 
+def _get_content(args):
+  if 'from' in args:
+    parse = lambda t: datetime.strptime(
+        t, '%Y%m%d' if len(t) == 8 else '%Y%m%d%H%M').replace(tzinfo=LOCALTZ)
+
+    from_ = parse(args['from'])
+    to = (parse(args['to']) if 'to' in args
+          else from_ + timedelta(hours=24))
+    return aqm.get_range(from_, to)
+
+  else:
+    return aqm.get_latest(int(args.get('hours', 24)))
+
 @app.route('/')
 def index():
-    """Index page for the application"""
-    hours = int(request.args.get('hours', 24))
-    return render_template(
-        'index.html',
-        historical=reconfigure_data(aqm.get_latest(hours)),
-        minsPerSample=MINUTES_PER_SAMPLE,
-        )
-
+  """Index page for the application"""
+  return render_template(
+      'index.html',
+      historical=reconfigure_data(_get_content(request.args)),
+      minsPerSample=MINUTES_PER_SAMPLE,
+      )
 
 @app.route('/api/')
 def api():
     """Returns historical data from the sensor"""
-    hours = int(request.args.get('hours', 24))
-    return jsonify(reconfigure_data(aqm.get_latest(hours)))
+    return jsonify(reconfigure_data(_get_content(request.args)))
 
 
-def stream(hours):
-    get = lambda: aqm.get_latest(hours)
+def stream(args):
     old_data = None
     while True:
-        new_data = get()
+        new_data = _get_content(args)
         if new_data != old_data:
             old_data = new_data
             yield 'event: data\ndata: {}\n\n'.format(
@@ -107,8 +117,7 @@ def stream(hours):
 def api_listen():
     # Apparently bjoern is single-threaded, so maybe server-sent events isn't
     # the best idea...
-    hours = int(request.args.get('hours', 24))
-    return Response(stream(hours), mimetype='text/event-stream')
+    return Response(stream(request.args), mimetype='text/event-stream')
 
 if __name__ == "__main__":
     #app.run(debug=True, use_reloader=False, host='0.0.0.0',
