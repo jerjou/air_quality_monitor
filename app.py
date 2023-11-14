@@ -36,12 +36,7 @@ def pretty_timestamps(measurement):
           tzinfo=timezone.utc).astimezone(LOCALTZ)
         for m in measurement]
     if timestamps:
-        # Label the date for only the ones where the day changes, and the first hour
-        # of each new day (Not just the first entry, because the graph may not end
-        # up using that label for coarse grid lines)
-        return [timestamps[0].strftime('%a %m/%d %H:%M')] + [
-            dt.strftime('%H:%M' if dt.hour else '%a %m/%d %H:%M')
-            for dt in timestamps[1:]]
+        return [dt.timestamp() for dt in timestamps]
     else:
         return []
 

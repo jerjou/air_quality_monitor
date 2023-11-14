@@ -36,6 +36,14 @@
     maintainAspectRatio: false,
     scales: {
       x: {
+        ticks: {
+          callback: function(v, idx, ticks) {
+            let d = new Date(this.getLabelForValue(v)*1e3);
+            let t = d.toLocaleString('en-US', { hour12:false, timeStyle:'short' });
+            let day = d.toLocaleString('en-US', { weekday: 'short' });
+            return `${day} ${t}`;
+          }
+        },
         title: {
           display:1,
           text: 'Time'
