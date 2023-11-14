@@ -9,6 +9,7 @@
 <style>
 #historicalChart {
   height:80vh;
+  width:1vw;
 }
 </style>
 
@@ -16,19 +17,11 @@
 
 </head>
 <body>
-    <div class="container">
-        <div class="row">
-            <div class="col-12">
-                <h1>Raspberry Pi Air Quality Monitor</h1>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-12">
-                <canvas id="historicalChart" width="400" height="200"></canvas>
-            </div>
-        </div>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.3.2/chart.min.js" integrity="sha512-VCHVc5miKoln972iJPvkQrUYYq7XpxXzvqNfiul1H4aZDwGBGC0lq373KNleaB2LpnC2a/iNfE5zoRYmB4TRDQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <h1>Raspberry Pi Air Quality Monitor</h1>
+  <canvas id="historicalChart"></canvas>
+  <div><button>Past</button><button>Future</button></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.3.2/chart.min.js" integrity="sha512-VCHVc5miKoln972iJPvkQrUYYq7XpxXzvqNfiul1H4aZDwGBGC0lq373KNleaB2LpnC2a/iNfE5zoRYmB4TRDQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
   const MINS_PER_SAMPLE = {{ minsPerSample }};
   const INITIAL_DATA = {{ historical | tojson }};
@@ -92,6 +85,30 @@ function sleep(ms) {
     chart.update('none');
   }
 })();
+  {
+    let today = new Date();
+    let til = new Date();
+    let from = new Date();
+    let formatDate = d => `${d.getFullYear()}${String(d.getDate()).padStart(2, "0")}`;
+    document.documentElement.addEventListener('click', async (e) => {
+      if (e.target.tagName === "BUTTON") {
+        if (e.target.innerText === "Past") {
+          til.setDate(til.getDate()-1);
+          from.setDate(til.getDate()-1);
+        } else {
+          til.setDate(til.getDate()+1);
+          from.setDate(til.getDate()-1);
+        }
+        let data = await fetch(`/api/?from=${formatDate(from)}&to=${formatDate(til)}`);
+        data = await data.json();
+        chart.data = {
+          labels: data.labels,
+          datasets: [data.aqi, data.pm10, data.pm2]
+        };
+        chart.update('none');
+      }
+    });
+  }
 </script>
 </body>
 </html>
