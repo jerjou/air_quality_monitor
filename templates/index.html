@@ -23,20 +23,21 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.3.2/chart.min.js" integrity="sha512-VCHVc5miKoln972iJPvkQrUYYq7XpxXzvqNfiul1H4aZDwGBGC0lq373KNleaB2LpnC2a/iNfE5zoRYmB4TRDQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
+  const dateLabel = function(epochSecs) {
+    let d = new Date(epochSecs*1e3);
+    let t = d.toLocaleString('en-US', { hour12:false, timeStyle:'short' });
+    let day = d.toLocaleString('en-US', { weekday: 'short' });
+    return `${day} ${t}`;
+  };
   const MINS_PER_SAMPLE = {{ minsPerSample }};
   const INITIAL_DATA = {{ historical | tojson }};
   const CHART_OPTIONS = {
     maintainAspectRatio: false,
     scales: {
       x: {
-        ticks: {
-          callback: function(v, idx, ticks) {
-            let d = new Date(this.getLabelForValue(v)*1e3);
-            let t = d.toLocaleString('en-US', { hour12:false, timeStyle:'short' });
-            let day = d.toLocaleString('en-US', { weekday: 'short' });
-            return `${day} ${t}`;
-          }
-        },
+        ticks: { callback: function(v) {
+          return dateLabel(this.getLabelForValue(v));
+        } },
         title: {
           display:1,
           text: 'Time'
@@ -44,12 +45,16 @@
       },
       y: {
         title: {
-          display:true,
+          display:1,
           text: 'μg /m³'
         },
         beginAtZero: true
       }
-    }
+    },
+    plugins: { tooltip: { callbacks: {
+      title: ctxs => dateLabel(parseFloat(ctxs[0].label)),
+      label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}`
+    } } }
   };
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
